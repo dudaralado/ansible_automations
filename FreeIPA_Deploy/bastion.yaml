@@ -1,7 +1,7 @@
 ---
 - hosts: bastion_amazon
 
-#  pre_tasks:
+  pre_tasks:
 #  - name: Import EPEL GPG key
 #    become: yes
 #    ansible.builtin.rpm_key:
@@ -12,13 +12,11 @@
 #    ansible.builtin.dnf:
 #      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 #      state: present
-#  - name: OS Update
-#    become: yes
-#    ansible.builtin.dnf:
-#      name: '*'
-#      state: latest
+  - name: OS Update
+    become: yes
+    ansible.builtin.dnf:
+      name: '*'
+      state: latest
   roles:
-#  - basic
+  - basic
   - ldap
-#  - monitoring
-#  - openShift
