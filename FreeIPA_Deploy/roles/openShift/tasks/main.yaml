@@ -1,0 +1,36 @@
+  - name: Install OpenShift Client (oc)
+    ansible.builtin.unarchive:
+      src: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux-amd64-rhel9.tar.gz
+      dest: /usr/bin
+      remote_src: yes
+
+  - name: Install OpenShift Mirror Pluggin (oc-mirror)
+    ansible.builtin.unarchive:
+      src: https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest/oc-mirror.rhel9.tar.gz
+      dest: /usr/bin
+      remote_src: yes
+
+  - name: Make oc-mirror binary executable
+    ansible.builtin.file:
+      path: /usr/bin/oc-mirror
+      mode: 0755
+
+
+  - name: Create Mirror Directory for OpenShift Mirror Registry (OMR)
+    become: false
+    ansible.builtin.file:
+      path: ~/MIRROR
+      state: directory
+      mode: 0755
+
+  - name: Download OpenShift Mirror Registry binaries (OMR binaries)
+    become: false
+    ansible.builtin.unarchive:
+      src: https://mirror.openshift.com/pub/cgw/mirror-registry/latest/mirror-registry-amd64.tar.gz
+      dest: ~/MIRROR
+      remote_src: yes
+  
+  - name: Make mirror-regitry binary executable
+    ansible.builtin.file:
+      path: /home/ec2-user/MIRROR/mirror-registry
+      mode: 0755

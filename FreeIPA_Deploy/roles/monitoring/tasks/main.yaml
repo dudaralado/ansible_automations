@@ -1,0 +1,56 @@
+  - name: Install Prometheus, Node Exporter and Grafana
+    become: yes
+    ansible.builtin.dnf:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - prometheus
+      - node-exporter
+      - grafana
+
+  - name: Ensure Prometheus is running and enabled
+    become: yes
+    ansible.builtin.systemd:
+      name: prometheus.service
+      enabled: yes
+      state: started
+
+  - name: Ensure Node Exporter is running and enabled
+    become: yes
+    ansible.builtin.systemd:
+      name: node_exporter.service
+      enabled: yes
+      state: started
+
+  - name: Ensure Grafana is running and enabled
+    become: yes
+    ansible.builtin.systemd:
+      name: grafana-server.service
+      enabled: yes
+      state: started
+
+  - name: Ensure Firewaald is running and enabled
+    become: yes
+    ansible.builtin.systemd:
+      name: firewalld.service
+      enabled: yes
+      state: started
+
+  - name: Permit traffic in default zone on ports
+    become: yes
+    ansible.posix.firewalld:
+      port: "{{ item }}"
+      permanent: true
+      state: enabled
+      immediate: yes
+    loop:
+      - 80/tcp
+      - 3000/tcp
+      - 443/tcp
+      - 8080/tcp
+      - 9100/tcp
+      - 9090/tcp
+      - 123/udp
+      - 88/udp
+      - 464/udp
+      - 53/udp

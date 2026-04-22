@@ -1,0 +1,19 @@
+  - name: Install packeges
+    become: yes
+    ansible.builtin.dnf:
+      name: "{{ item }}" 
+      state: latest
+    loop:
+      - openldap-clients
+      - krb5-workstation 
+      - firewalld 
+      - vim 
+      - wget 
+      - java 
+      - bash-completion 
+      - podman 
+      - skopeo 
+      - git 
+      - jq 
+      - gcc 
+      - bc

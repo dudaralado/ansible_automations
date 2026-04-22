@@ -1,0 +1,129 @@
+- name: Create Data directory for FreeIPA Server (LDAP)
+#  become: yes
+  ansible.builtin.file:
+    path: /home/ec2-user/DATA/freeIPA/ipa-data
+    state: directory
+
+- name: Create FreeIPA options file (LDAP)
+  ansible.builtin.copy:
+    dest: /home/ec2-user/DATA/freeIPA/ipa-data/ipa-server-install-options
+    owner: ec2-user
+    mode: '0600'
+    content: |
+      --realm=COMPUTE-1.AMAZONAWS.COM
+      --domain=compute-1.amazonaws.com
+      --ds-password=password
+      --admin-password=SuperSecret
+      --no-ntp
+      --unattended
+
+- name: Allow unprivileged users to bind to FreeIPA ports
+  become: yes
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_unprivileged_port_start
+    value: '53'  # This covers 53, 80, 88, 389, 443, 464, and 636
+    state: present
+    reload: true
+
+
+- name: Run FreeIPA container
+  containers.podman.podman_container:
+    name: freeipa-server-container
+    image: docker.io/freeipa/freeipa-server:centos-9-stream-4.12.2
+    state: started
+    hostname: "{{ inventory_hostname }}"
+    # Pass the list directly here — no "item" or "loop" needed
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "80:80/tcp"
+      - "443:443/tcp"
+      - "389:389/tcp"
+      - "636:636/tcp"
+      - "88:88/tcp"
+      - "464:464/tcp"
+      - "88:88/udp"
+      - "464:464/udp"
+      - "123:123/udp"
+    volumes:
+      - "/home/ec2-user/DATA/freeIPA/ipa-data:/data:Z"
+
+- name: Wait 7min before starting IPA provisioning user and groups
+  ansible.builtin.pause:
+    seconds: 420
+
+#########################
+#   Create LDAP USERS   #
+#########################
+- name: Ensure multiple users exist in FreeIPA
+  community.general.ipa_user:
+    name: "{{ item.name }}"
+    state: present
+    givenname: "{{ item.givenname }}"
+    sn: "{{ item.sn }}"
+    password: "{{ item.password }}"
+    ipa_host: "{{ inventory_hostname }}" 
+    ipa_user: admin
+    ipa_pass: SuperSecret
+#    update_password: on_create
+    validate_certs: false
+  loop:
+    - { name: developer_01, givenname: Developer, sn: "01", mail: developer_01@compute-1.amazonaws.com, password: pass1234, title: Software Engineer}
+    - { name: developer_02, givenname: Developer, sn: "02", mail: developer_02@compute-1.amazonaws.com, password: pass1234, title: Software Engineer}
+    - { name: developer_03, givenname: Developer, sn: "03", mail: developer_03@compute-1.amazonaws.com, password: pass1234, title: Software Engineer }
+    - { name: developer_04, givenname: Developer, sn: "04", mail: developer_04@compute-1.amazonaws.com, password: pass1234, title: Software Engineer }
+
+    - { name: qa_01, givenname: Quality Assurance, sn: "01", mail: qa_01@compute-1.amazonaws.com, password: pass1234, title: Quality Assurance Engineer }
+    - { name: qa_02, givenname: Quality Assurance, sn: "02", mail: qa_02@compute-1.amazonaws.com, password: pass1234, title: Quality Assurance Engineer }
+    - { name: qa_03, givenname: Quality Assurance, sn: "03", mail: qa_03@compute-1.amazonaws.com, password: pass1234, title: Quality Assurance Engineer }
+    - { name: qa_04, givenname: Quality Assurance, sn: "04", mail: qa_04@compute-1.amazonaws.com, password: pass1234, title: Quality Assurance Engineer }
+
+#########################
+#   Create LDAP GROUPS  #
+#########################
+- name: Ensure group is present
+  community.general.ipa_group:
+    name: "{{ item.name }}"
+#    gidnumber: '54321'
+    state: present
+    ipa_host: "{{ inventory_hostname }}" 
+    ipa_user: admin
+    ipa_pass: SuperSecret
+    validate_certs: false
+  loop:
+    - { name: developers }
+    - { name: quality_assurance }
+
+############################
+# ADD USERS TO LDAP GROUPS #
+############################
+
+- name: Ensure that developer users are member of developers group
+  community.general.ipa_group:
+    name: developers
+    user: "{{ item.name }}"
+    append: true
+    ipa_host: "{{ inventory_hostname }}" 
+    ipa_user: admin
+    ipa_pass: SuperSecret
+    validate_certs: false
+  loop:
+    - { name: developer_01}
+    - { name: developer_02}
+    - { name: developer_03}
+    - { name: developer_04}
+
+- name: Ensure that quality assurance  users are member of quality_assurance group
+  community.general.ipa_group:
+    name: quality_assurance
+    user: "{{ item.name }}"
+    append: true
+    ipa_host: "{{ inventory_hostname }}" 
+    ipa_user: admin
+    ipa_pass: SuperSecret
+    validate_certs: false
+  loop:
+    - { name: qa_01}
+    - { name: qa_02}
+    - { name: qa_03}
+    - { name: qa_04}
