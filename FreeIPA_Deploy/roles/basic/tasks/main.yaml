@@ -17,3 +17,29 @@
       - jq 
       - gcc 
       - bc
+
+  - name: Ensure Firewaald is running and enabled
+    become: yes
+    ansible.builtin.systemd:
+      name: firewalld.service
+      enabled: yes
+      state: started
+
+  - name: Permit traffic in default zone on ports
+    become: yes
+    ansible.posix.firewalld:
+      port: "{{ item }}"
+      permanent: true
+      state: enabled
+      immediate: yes
+    loop:
+      - 80/tcp
+      - 3000/tcp
+      - 443/tcp
+      - 8080/tcp
+      - 9100/tcp
+      - 9090/tcp
+      - 123/udp
+      - 88/udp
+      - 464/udp
+      - 53/udp
